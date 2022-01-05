@@ -1,0 +1,1 @@
+http-server -S -C C:\\Users\\nic34\\Documents\\threejs\\example.com+5.pem -K C:\\Users\\nic34\\Documents\\threejs\\example.com+5-key.pem
