@@ -4,6 +4,7 @@ import {BoxLineGeometry} from './jsm/geometries/BoxLineGeometry.js';
 import {VRButton} from './jsm/webxr/VRButton.js';
 import {cleanIntersected, controller1, controller2, initController, intersectObjects} from './touch.js'
 import {initObj} from "./init-obj.js";
+import {mouse} from "./select-obj.js";
 
 let camera, scene, renderer;
 
@@ -14,16 +15,16 @@ const radius = 0.1;
 
 let raycaster;
 
-const intersected = [];
+let intersected = [];
 
 init();
 animate();
 
 console.log('code1.js')
 
-let select1;
+window.select1 = undefined;
 
-export {select1, room, raycaster, intersected, renderer, scene, radius, addLine}
+export {room, raycaster, intersected, renderer, scene, radius, addLine, camera}
 
 function init() {
 
@@ -142,13 +143,23 @@ function animate() {
 }
 
 function render() {
-
-    console.log({dd: renderer.xr.isPresenting()})
-
     cleanIntersected();
 
-    intersectObjects(controller1);
-    intersectObjects(controller2);
+    if (renderer.xr.isPresenting) {
+        intersectObjects(controller1);
+        intersectObjects(controller2);
+    } else {
+        room.children.forEach(item => item.material.color.set(0xffffff))
+
+        raycaster.setFromCamera(mouse, camera);
+        intersected = raycaster.intersectObjects(scene.children).map(e => e.object);
+
+        for (let i = 0; i < intersected.length; i++) {
+            // intersected[i].material.opacity = 0.8;
+            intersected[ i ].material.color.set( 0xff0000 );
+        }
+    }
+
 
     renderer.render(scene, camera);
 

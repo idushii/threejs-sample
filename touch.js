@@ -30,7 +30,7 @@ function intersectObjects(controller) {
         const intersection = intersections[0];
 
         const object = intersection.object;
-        object.material.emissive.r = 1;
+        object.material.opacity = 1;
         intersected.push(object);
 
         line.scale.z = intersection.distance;
@@ -48,7 +48,7 @@ function cleanIntersected() {
     while (intersected.length) {
 
         const object = intersected.pop();
-        object.material.emissive.r = 0;
+        object.material.opacity = 0.8;
 
     }
 

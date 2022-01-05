@@ -1,4 +1,4 @@
-import {addLine, select1} from './code.js'
+import {addLine, camera, raycaster, room} from './code.js'
 import * as THREE from './build/three.module.js';
 import {getIntersections} from "./touch.js";
 
@@ -20,7 +20,7 @@ function onSelectTouchStart(event) {
 
         controller.userData.selected = object;
 
-        if (!select1) select1 = object;
+        if (!window.select1) window.select1 = object;
     }
 
 
@@ -37,12 +37,12 @@ function onSelectTouchEnd(event) {
         // room.attach(object);
 
 
-        if (select1 && select1 !== controller.userData.selected) {
-            console.log(select1, controller.userData.selected)
+        if (window.select1 && window.select1 !== controller.userData.selected) {
+            console.log(window.select1, controller.userData.selected)
 
-            addLine(select1, controller.userData.selected)
+            addLine(window.select1, controller.userData.selected)
 
-            select1 = undefined;
+            window.select1 = undefined;
         }
 
         controller.userData.selected = undefined;
@@ -60,6 +60,27 @@ function onMouseMove(event) {
 
 }
 
+function onMouseUp(event) {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    let intersected = raycaster.intersectObjects(room.children).map(e => e.object);
+
+    if (!intersected[0]) return;
+
+    if (window.select1 && window.select1 !== intersected[0]) {
+        console.log(window.select1, intersected[0])
+
+        addLine(window.select1, intersected[0])
+
+        window.select1 = undefined;
+    } else {
+        window.select1 = intersected[0];
+    }
+}
+
 window.addEventListener('mousemove', onMouseMove, false);
+window.addEventListener('mouseup', onMouseUp, false);
 
 export {onSelectTouchStart, onSelectTouchEnd, onMouseMove, mouse}
