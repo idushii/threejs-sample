@@ -6,6 +6,7 @@ import {VRButton} from './jsm/webxr/VRButton.js';
 import {cleanIntersected, controller1, controller2, initController, intersectObjects} from './touch.js'
 import {addObj, initObj} from "./init-obj.js";
 import {mouse} from "./select-obj.js";
+import {getRadiusByV} from "./utils.js";
 
 let camera, scene, renderer;
 
@@ -19,7 +20,7 @@ let room;
  */
 let microGroups;
 
-const radius = 0.1;
+const radius = 0.2;
 
 let raycaster;
 
@@ -33,6 +34,9 @@ console.log('code1.js')
 window.select1 = undefined;
 
 export {room, microGroups, raycaster, intersected, renderer, scene, radius, addLine, camera}
+
+window.microGroups = microGroups;
+window.room = room;
 
 /**
  * Начальная подготовка приложения
@@ -156,13 +160,18 @@ function customPath(p1, p2) {
 /**
  * Добавление микроба для анимации
  *
- * @param {Vector3[]} points
+ * @param {Vector3[][]} points
+ * @param {Mesh} o2
+ * @param value
  */
-function addMicro(points = []) {
-    const startPoint = points[0];
-    /** @type {Micro} */
-    const micro = addObj(startPoint.x, startPoint.y, startPoint.z, 0.2, microGroups)
-    micro.userData = {points, index: 0, startTime: Date.now(), updateTime: Date.now()};
+function addMicro(points = [], o2, value = 1) {
+    const hash = Math.random()
+    for (let curve of points) {
+        const startPoint = curve[0];
+        /** @type {Micro} */
+        const micro = addObj(startPoint.x, startPoint.y, startPoint.z, 0.02, microGroups)
+        micro.userData = {points: curve, index: 0, startTime: Date.now(), updateTime: Date.now(), o2, hash, value: o2.userData.value / 2};
+    }
 }
 
 /**
@@ -183,8 +192,8 @@ function drawLine(p1, p2, color = 0xffffff) {
 /**
  * Добавление прямой линии между выбранными объектами
  *
- * @param {Object3D} o1
- * @param {Object3D} o2
+ * @param {Mesh} o1
+ * @param {Mesh} o2
  */
 function addLine(o1, o2) {
     const i1 = room.children.findIndex(e => e === o1);
@@ -192,11 +201,19 @@ function addLine(o1, o2) {
 
     console.log(`add line ${i1} => ${i2}`)
 
+    const value = o1.userData.value;
+    const scale = getRadiusByV(value / 2)
+    o1.userData.value = value / 2;
+    o1.geometry = new THREE.IcosahedronGeometry(radius, 3);
+    o1.geometry.scale(getRadiusByV(scale), getRadiusByV(scale), getRadiusByV(scale))
+
     // drawLine(o1.position, o2.position)
 
-    addMicro(customPath(o1.position, o2.position))
-    addMicro(customPath(o1.position, o2.position))
-    addMicro(customPath(o1.position, o2.position))
+    addMicro([
+        customPath(o1.position, o2.position),
+        customPath(o1.position, o2.position),
+        customPath(o1.position, o2.position)
+    ], o2, value / 2)
 }
 
 function onWindowResize() {
@@ -239,18 +256,28 @@ function render() {
 
         /** @type {Micro} */
         const micro = microGroups.children[key];
+        const microUserData = micro.userData;
 
-        if (Date.now() - micro.userData.updateTime > 20) {
-            micro.userData.index++;
-            if (micro.userData.index > (micro.userData.points.length - 2)) microGroups.children.splice(key, 1);
-            const pos = micro.userData.points[micro.userData.index];
+        if (Date.now() - microUserData.updateTime > 20) {
+            microUserData.index++;
+            if (microUserData.index > (microUserData.points.length - 2)) {
+                microUserData.o2.userData.value += microUserData.value;
+                const scale = microUserData.o2.userData.value;
+                microUserData.o2.geometry = new THREE.IcosahedronGeometry(radius, 3);
+                microUserData.o2.geometry.scale(getRadiusByV(scale), getRadiusByV(scale), getRadiusByV(scale))
+
+                console.log(scale, microUserData.value, microUserData.o2.userData.value)
+
+                for (let keyRemove in microGroups.children)
+                    if (microGroups.children[keyRemove].userData.hash === microUserData.hash)
+                        microGroups.children.splice(keyRemove, 1);
+            }
+            const pos = microUserData.points[microUserData.index];
             micro.position.set(...pos);
-            micro.userData.updateTime = Date.now();
+            microUserData.updateTime = Date.now();
         }
     }
 
 
     renderer.render(scene, camera);
-
 }
-
